@@ -1,0 +1,13 @@
+# Render blueprint — lets you deploy with "New + > Blueprint" and pick this repo.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: musicforkhushi
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      # Set the actual value in the Render dashboard (kept out of git).
+      - key: YOUTUBE_API_KEY
+        sync: false
