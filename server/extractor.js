@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { findSongByVideoId, saveSong } from "./sanity.js";
@@ -15,9 +15,22 @@ import { findSongByVideoId, saveSong } from "./sanity.js";
     - an alternate player client (YTDLP_PLAYER_CLIENT, e.g. "android,web").
   All are optional; locally none are needed.
 */
-const COOKIES_PATH =
+const RAW_COOKIES =
   process.env.YTDLP_COOKIES ||
   (existsSync("/etc/secrets/cookies.txt") ? "/etc/secrets/cookies.txt" : "");
+// yt-dlp rewrites the cookie jar when it exits, but Render Secret Files are
+// read-only. Stage a writable copy in tmp and let yt-dlp update that instead.
+let COOKIES_PATH = "";
+if (RAW_COOKIES) {
+  try {
+    const writable = path.join(tmpdir(), "ytdlp-cookies.txt");
+    copyFileSync(RAW_COOKIES, writable);
+    COOKIES_PATH = writable;
+  } catch (err) {
+    console.error("Could not stage cookies file, using it read-only:", err.message);
+    COOKIES_PATH = RAW_COOKIES;
+  }
+}
 const PROXY = process.env.YTDLP_PROXY || "";
 const PLAYER_CLIENT = process.env.YTDLP_PLAYER_CLIENT || "";
 
