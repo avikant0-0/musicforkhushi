@@ -176,7 +176,7 @@ function getRoom(roomId) {
       position: 0,
       lastUpdate: Date.now(),
       queue: [],
-      videoEnabled: true,
+      videoEnabled: false,
       showRecommendations: false,
       users: new Map(),
     });

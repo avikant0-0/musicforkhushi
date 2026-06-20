@@ -108,6 +108,21 @@ function parseYouTubeId(input) {
 }
 
 /* ----------------------------- YouTube player ----------------------------- */
+// We don't show video, so stream the lowest quality (240p) to save bandwidth.
+// 'small' = 240p in the YouTube IFrame API.
+const LOW_QUALITY = "small";
+
+// Ask the player to use the lowest quality. Note: modern YouTube treats this as
+// a *suggestion* and may override it, but combined with the tiny player size it
+// keeps bandwidth low.
+function forceLowQuality() {
+  try {
+    if (player && player.setPlaybackQuality) {
+      player.setPlaybackQuality(LOW_QUALITY);
+    }
+  } catch {}
+}
+
 // Global callback fired by the IFrame API script.
 window.onYouTubeIframeAPIReady = function () {
   player = new YT.Player("player", {
@@ -119,10 +134,12 @@ window.onYouTubeIframeAPIReady = function () {
       rel: 0,
       modestbranding: 1,
       playsinline: 1,
+      vq: LOW_QUALITY, // request 240p
     },
     events: {
       onReady: onPlayerReady,
       onStateChange: onPlayerStateChange,
+      onPlaybackQualityChange: () => forceLowQuality(),
     },
   });
 };
@@ -130,6 +147,7 @@ window.onYouTubeIframeAPIReady = function () {
 function onPlayerReady() {
   playerReady = true;
   player.setVolume(Number(el.volume.value));
+  forceLowQuality();
   if (pendingState) {
     applyState(pendingState);
     pendingState = null;
@@ -145,6 +163,12 @@ function onPlayerStateChange(e) {
     socket.emit("next");
     return;
   }
+
+  // Re-assert low quality whenever playback (re)starts or buffers.
+  if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING) {
+    forceLowQuality();
+  }
+
   if (now < suppressEmitUntil) return; // ignore echoes from remote-applied changes
 
   if (e.data === YT.PlayerState.PLAYING) {
@@ -221,13 +245,16 @@ function syncPlayer(state) {
       player.loadVideoById({
         videoId: state.current.videoId,
         startSeconds: state.position || 0,
+        suggestedQuality: LOW_QUALITY,
       });
     } else {
       player.cueVideoById({
         videoId: state.current.videoId,
         startSeconds: state.position || 0,
+        suggestedQuality: LOW_QUALITY,
       });
     }
+    forceLowQuality();
     return;
   }
 
