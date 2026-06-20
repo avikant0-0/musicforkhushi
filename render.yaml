@@ -1,13 +1,19 @@
-# Render blueprint — lets you deploy with "New + > Blueprint" and pick this repo.
+# Render blueprint — deploy with "New + > Blueprint" and pick this repo.
+# Uses Docker so yt-dlp + ffmpeg are available for audio extraction.
 # Docs: https://render.com/docs/blueprint-spec
 services:
   - type: web
     name: musicforkhushi
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
     envVars:
-      # Set the actual value in the Render dashboard (kept out of git).
+      # Set the actual values in the Render dashboard (kept out of git).
       - key: YOUTUBE_API_KEY
+        sync: false
+      - key: SANITY_PROJECT_ID
+        sync: false
+      - key: SANITY_DATASET
+        value: production
+      - key: SANITY_TOKEN
         sync: false

@@ -1,49 +1,110 @@
 # music for khushi 💕
 
-A cozy little website where two people can listen to YouTube music **together, in perfect sync**. Press play on one device and it plays on the other — same song, same spot.
-
-## Features
-
-- 🎧 **Listen together** — real-time synced playback (play / pause / seek / skip propagate to everyone in the room).
-- 🏠 **Private rooms** — share a room code so it's just the two of you. Default room is `khushi`.
-- 📺 **Video toggle** — hide the video and switch to a pretty audio-only mode with a spinning record.
-- 🔍 **Search** — find any song on YouTube and play it or add it to the queue.
-- ➕ **Shared queue** — line up songs; both of you see the same up-next list.
-- 💡 **Recommendations** — toggle on suggestions based on what's currently playing.
-- 💬 **Chat** — say something cute while you listen.
-
-## Setup
-
-```bash
-npm install
-cp .env.example .env   # then edit .env
-npm start
-```
-
-Open http://localhost:3000 in two browsers (or two devices) and join with the **same room code**.
-
-### YouTube API key (for search & recommendations)
-
-Search and recommendations use the YouTube Data API v3. Without a key you can still
-paste YouTube links/IDs and listen together — only search/recs are disabled.
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a project and enable **YouTube Data API v3**.
-3. Create an **API key** under *Credentials*.
-4. Put it in `.env` as `YOUTUBE_API_KEY=your_key_here`.
+Listen to YouTube music **together, in sync** — except the audio is extracted
+once, cached in **Sanity**, and streamed from there. Search a song, and if it's
+new it gets processed (audio extracted → stored in Sanity); if it's already in
+Sanity it plays instantly. Either way, **audio always streams from Sanity**.
 
 ## How it works
 
-- **Backend** (`server.js`): Express serves the static frontend and proxies YouTube
-  search/recommendation requests (keeping your API key off the client). Socket.IO keeps a
-  per-room state (current track, play/pause, position, queue, toggles) and broadcasts changes.
-- **Frontend** (`public/`): The YouTube IFrame Player API handles playback. The client
-  reconciles its player against the shared room state and emits local actions back to the room.
+```
+search (YouTube Data API)  →  add a song
+                                  │
+                        is it already in Sanity?
+                       ┌──────────┴───────────┐
+                     yes                       no
+                      │                         │
+                   queue1                    queue2  (extraction)
+              (playable, per-room)      yt-dlp → m4a → upload to Sanity
+                      ▲                  create `song` doc, then ↓
+                      └──── moves to queue1 when ready ──────────┘
+                      │
+                      ▼
+        <audio src = Sanity CDN url>   ← always streams audio from Sanity
+```
+
+- **queue2** — the extraction pipeline (`server/extractor.js`). Videos whose
+  audio isn't in Sanity yet. A background worker runs `yt-dlp`, uploads the
+  audio to Sanity, creates a `song` document, then promotes it to queue1.
+- **queue1** — the playable per-room "up next" (`server/rooms.js`). Every track
+  has a ready-to-stream Sanity `audioUrl`.
+- **Sanity** (`server/sanity.js`) is the permanent library / cache. The
+  in-memory queues are just runtime.
+
+## Project layout
+
+```
+server/         Node + Express + Socket.IO backend
+  index.js        routes, sockets, queue routing
+  sanity.js       Sanity client + cache lookup / save (Phase 1)
+  extractor.js    yt-dlp extraction worker = queue2 (Phase 2)
+  youtube.js      YouTube Data API (search / recommendations metadata)
+  rooms.js        per-room state + queue1 / queue2
+  schema/song.js  optional Sanity Studio schema (not required by the server)
+client/         Vite + React frontend (Phase 4 — currently a smoke-test UI)
+Dockerfile      Node + ffmpeg + yt-dlp, builds the client
+```
+
+## Setup
+
+You need **Node 18+**, plus **yt-dlp** and **ffmpeg** if you want extraction to
+run locally (the Docker image installs them for you).
+
+```bash
+# 1. backend deps
+npm install
+
+# 2. config
+cp .env.example .env   # fill in YOUTUBE_API_KEY + Sanity values
+
+# 3. client deps
+npm --prefix client install
+```
+
+### Sanity (required for playback)
+
+1. Create a free project at <https://www.sanity.io/>.
+2. Note the **Project ID** and use dataset `production`.
+3. Create a token with **write** access (Manage → API → Tokens, role *Editor*).
+4. Put `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_TOKEN` in `.env`.
+
+You don't need a Sanity Studio — the server writes documents/assets directly.
+(If you want a UI to browse the library, spin up a Studio and use
+`server/schema/song.js`.)
+
+### Run (dev)
+
+```bash
+npm run dev        # backend on :3000  (auto-restarts)
+npm run client     # Vite dev server on :5173 (proxies /api + sockets to :3000)
+```
+
+Open <http://localhost:5173>.
+
+### Run (production / Docker)
+
+```bash
+docker build -t musicforkhushi .
+docker run -p 3000:3000 --env-file .env musicforkhushi
+```
+
+The container builds the React client and the server serves `client/dist`.
+
+## Deploy (Render)
+
+`render.yaml` is a Docker blueprint. Create a Blueprint service from this repo
+and set `YOUTUBE_API_KEY`, `SANITY_PROJECT_ID`, `SANITY_TOKEN` in the dashboard.
+
+## Status
+
+- ✅ **Phase 1** — Sanity client + cache lookup/save
+- ✅ **Phase 2** — yt-dlp extraction worker (queue2) + two-queue routing
+- ✅ **Phase 4** — full React UI (player, queues, search, recs, chat, sync)
+- ⏳ Deploy to Render (configured, not yet pushed)
 
 ## Notes
 
-- The "listen together" sync is best-effort: it keeps both players within ~2 seconds of each
-  other and re-syncs on play/pause/seek/track changes.
-- YouTube's `relatedToVideoId` API was removed, so recommendations are approximated by
-  searching for more music from the current song's artist/keywords.
-- Browsers may block autoplay with sound until you interact with the page — just hit play once.
+- Extracting YouTube audio is against YouTube's Terms of Service — this is a
+  small private project; use accordingly.
+- Sanity free-tier storage/bandwidth is finite — fine for a personal library.
+- First play of a *new* song waits for extraction; cached songs are instant.
