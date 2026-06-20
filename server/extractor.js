@@ -207,10 +207,12 @@ function runYtDlp(args) {
         )
       )
     );
-    ps.on("close", (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`yt-dlp exited ${code}: ${stderr.slice(-500)}`))
-    );
+    ps.on("close", (code) => {
+      if (code === 0) return resolve();
+      // Log the FULL output — the n-challenge failure references "warnings
+      // presented before this message", which the truncated error hides.
+      console.error(`yt-dlp exited ${code}. Full stderr:\n${stderr}`);
+      reject(new Error(`yt-dlp exited ${code}: ${stderr.slice(-1500)}`));
+    });
   });
 }
