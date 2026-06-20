@@ -1,0 +1,24 @@
+{
+  "name": "musicforkhushi",
+  "version": "1.0.0",
+  "description": "A cozy little place to listen to YouTube music together, in sync.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "youtube",
+    "music",
+    "listen-together",
+    "sync",
+    "socket.io"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

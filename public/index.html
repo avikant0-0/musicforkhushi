@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>music for khushi 💕</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ============ Join screen ============ -->
+    <div id="join-screen" class="join-screen">
+      <div class="join-card">
+        <div class="join-heart">💕</div>
+        <h1>music for khushi</h1>
+        <p class="subtitle">listen to music together, in perfect sync</p>
+        <label class="field">
+          <span>your name</span>
+          <input id="name-input" type="text" placeholder="e.g. Khushi" maxlength="24" />
+        </label>
+        <label class="field">
+          <span>room code <small>(share this so you're in the same room)</small></span>
+          <input id="room-input" type="text" placeholder="khushi" maxlength="32" />
+        </label>
+        <button id="join-btn" class="primary-btn">join the room 🎧</button>
+        <p class="join-hint">use the same room code on both devices to listen together.</p>
+      </div>
+    </div>
+
+    <!-- ============ App ============ -->
+    <div id="app" class="app hidden">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-heart">💕</span>
+          <div>
+            <div class="brand-title">music for khushi</div>
+            <div class="room-label">room: <span id="room-name">khushi</span></div>
+          </div>
+        </div>
+        <div class="listeners">
+          <span class="dot"></span>
+          <span id="listeners-text">just you</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <!-- Left: player + now playing + controls -->
+        <section class="player-col">
+          <div id="player-wrap" class="player-wrap">
+            <div id="player"></div>
+            <!-- Audio-only overlay (shown when video is disabled) -->
+            <div id="audio-overlay" class="audio-overlay hidden">
+              <img id="audio-art" class="audio-art" alt="" />
+              <div class="audio-pulse">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="audio-only-label">audio only 🎧</div>
+            </div>
+          </div>
+
+          <div class="now-playing">
+            <div id="np-title" class="np-title">nothing playing yet</div>
+            <div id="np-channel" class="np-channel">search for a song to get started 💫</div>
+          </div>
+
+          <!-- Seek bar -->
+          <div class="seek-row">
+            <span id="cur-time" class="time">0:00</span>
+            <input id="seek" class="seek" type="range" min="0" max="100" value="0" step="0.1" />
+            <span id="dur-time" class="time">0:00</span>
+          </div>
+
+          <!-- Transport controls -->
+          <div class="controls">
+            <button id="play-btn" class="ctrl-btn play" title="Play / Pause">▶</button>
+            <button id="next-btn" class="ctrl-btn" title="Next">⏭</button>
+            <div class="vol-wrap">
+              <span class="vol-icon">🔊</span>
+              <input id="volume" class="volume" type="range" min="0" max="100" value="100" />
+            </div>
+          </div>
+
+          <!-- Toggles -->
+          <div class="toggles">
+            <label class="toggle">
+              <input id="video-toggle" type="checkbox" checked />
+              <span class="slider"></span>
+              <span class="toggle-label">show video</span>
+            </label>
+            <label class="toggle">
+              <input id="rec-toggle" type="checkbox" />
+              <span class="slider"></span>
+              <span class="toggle-label">recommendations</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Right: tabs (search / queue / recommendations / chat) -->
+        <section class="side-col">
+          <div class="tabs">
+            <button class="tab active" data-tab="search">🔍 search</button>
+            <button class="tab" data-tab="queue">📃 queue <span id="queue-count" class="badge">0</span></button>
+            <button class="tab" data-tab="recs">💡 recs</button>
+            <button class="tab" data-tab="chat">💬 chat</button>
+          </div>
+
+          <!-- Search tab -->
+          <div class="tab-panel active" data-panel="search">
+            <form id="search-form" class="search-form">
+              <input id="search-input" type="text" placeholder="search a song or paste a YouTube link…" />
+              <button type="submit" class="search-go">go</button>
+            </form>
+            <div id="search-note" class="note hidden"></div>
+            <div id="search-results" class="result-list"></div>
+          </div>
+
+          <!-- Queue tab -->
+          <div class="tab-panel" data-panel="queue">
+            <div class="queue-head">
+              <span>up next</span>
+              <button id="queue-clear" class="link-btn">clear all</button>
+            </div>
+            <div id="queue-list" class="result-list"></div>
+          </div>
+
+          <!-- Recommendations tab -->
+          <div class="tab-panel" data-panel="recs">
+            <div id="recs-note" class="note">turn on the “recommendations” toggle to see suggestions based on what’s playing.</div>
+            <div id="recs-list" class="result-list"></div>
+          </div>
+
+          <!-- Chat tab -->
+          <div class="tab-panel" data-panel="chat">
+            <div id="chat-log" class="chat-log"></div>
+            <form id="chat-form" class="chat-form">
+              <input id="chat-input" type="text" placeholder="say something cute 💌" maxlength="300" />
+              <button type="submit" class="search-go">send</button>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
