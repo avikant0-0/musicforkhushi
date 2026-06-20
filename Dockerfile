@@ -2,12 +2,18 @@
 # building the Vite/React client and serving it from the same server.
 FROM node:20-bookworm-slim
 
-# yt-dlp needs ffmpeg (for -x m4a) and a CA bundle for HTTPS.
+# yt-dlp needs ffmpeg (for -x m4a) and a CA bundle for HTTPS. It also needs a
+# JS runtime to solve YouTube's "n challenge" — Deno is yt-dlp's recommended
+# default (unzip is only needed to extract the Deno release).
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl \
+  && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl unzip \
   && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp \
   && chmod a+rx /usr/local/bin/yt-dlp \
-  && apt-get purge -y curl \
+  && curl -fsSL https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
+  && unzip /tmp/deno.zip -d /usr/local/bin \
+  && chmod a+rx /usr/local/bin/deno \
+  && rm /tmp/deno.zip \
+  && apt-get purge -y curl unzip \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -35,10 +35,11 @@ const PROXY = process.env.YTDLP_PROXY || "";
 const PLAYER_CLIENT = process.env.YTDLP_PLAYER_CLIENT || "";
 // YouTube's "n challenge" must be solved with a JS runtime or yt-dlp can only
 // see image formats ("Requested format is not available"). The yt-dlp_linux
-// binary bundles the EJS solver; it just needs a runtime. Node is already in
-// the image, so default to it (set "" to let yt-dlp use its default, e.g. Deno).
+// binary bundles the EJS solver; it just needs a runtime. Deno is yt-dlp's
+// recommended default (the Dockerfile installs it). Override with
+// YTDLP_JS_RUNTIME (e.g. "node"); set it to "" to let yt-dlp auto-detect.
 const JS_RUNTIME =
-  process.env.YTDLP_JS_RUNTIME === undefined ? "node" : process.env.YTDLP_JS_RUNTIME;
+  process.env.YTDLP_JS_RUNTIME === undefined ? "deno" : process.env.YTDLP_JS_RUNTIME;
 
 /*
   queue2 — the extraction pipeline.
