@@ -1,8 +1,25 @@
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { findSongByVideoId, saveSong } from "./sanity.js";
+
+/*
+  YouTube blocks anonymous requests from datacenter IPs ("Sign in to confirm
+  you're not a bot"). To get around it in production we let yt-dlp use, in
+  order of usefulness:
+    - a cookies file (Netscape format). On Render, add it as a Secret File at
+      /etc/secrets/cookies.txt, or point YTDLP_COOKIES at any path.
+    - an outbound proxy (YTDLP_PROXY, e.g. a residential proxy URL).
+    - an alternate player client (YTDLP_PLAYER_CLIENT, e.g. "android,web").
+  All are optional; locally none are needed.
+*/
+const COOKIES_PATH =
+  process.env.YTDLP_COOKIES ||
+  (existsSync("/etc/secrets/cookies.txt") ? "/etc/secrets/cookies.txt" : "");
+const PROXY = process.env.YTDLP_PROXY || "";
+const PLAYER_CLIENT = process.env.YTDLP_PLAYER_CLIENT || "";
 
 /*
   queue2 — the extraction pipeline.
@@ -128,6 +145,11 @@ async function extractAndStore(track) {
     // Let yt-dlp find ffmpeg even when it isn't on PATH.
     if (process.env.FFMPEG_LOCATION)
       args.push("--ffmpeg-location", process.env.FFMPEG_LOCATION);
+    // Bypass datacenter-IP bot detection where configured (see top of file).
+    if (COOKIES_PATH) args.push("--cookies", COOKIES_PATH);
+    if (PROXY) args.push("--proxy", PROXY);
+    if (PLAYER_CLIENT)
+      args.push("--extractor-args", `youtube:player_client=${PLAYER_CLIENT}`);
     args.push("-o", outTemplate, url);
 
     await runYtDlp(args);
